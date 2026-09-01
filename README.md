@@ -8,7 +8,7 @@ Polls the server data plane's ruleset export with an `ffs_` server key and evalu
 import { create } from "@fortressflag/sdk-node";
 
 const client = create({ key: process.env.FF_SERVER_KEY }); // the one place the SDK throws
-await client.start();          // resolves at the first ruleset (or the deadline); never fatal
+await client.start(); // resolves at the first ruleset (or the deadline); never fatal
 const enabled = client.bool("dark-mode", { key: "user-42", tags: { cohort: "beta" } }, false);
 client.close();
 ```
