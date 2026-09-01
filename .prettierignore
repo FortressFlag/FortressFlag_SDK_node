@@ -1,2 +1,4 @@
 dist/
 pnpm-lock.yaml
+# Vendored verbatim from FortressFlag_Standards — byte-identical, never reformatted.
+src/vectors/*.json
