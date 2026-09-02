@@ -62,14 +62,14 @@ jobs:
       - name: Unit tests (22)
         run: pnpm test
 
-      - name: Zero runtime dependencies (ADR-0018)
+      - name: Zero runtime dependencies (ADR-0020)
         # The `dependencies` block must not exist — its absence is the gate, the analogue of
         # the Go repo's go.sum-must-not-exist check.
         run: |
           node -e '
             const p = require("./package.json");
             if (p.dependencies && Object.keys(p.dependencies).length > 0) {
-              console.error("::error::package.json has runtime dependencies — the runtime tree stays empty (ADR-0018).");
+              console.error("::error::package.json has runtime dependencies — the runtime tree stays empty (ADR-0020).");
               process.exit(1);
             }
             console.log("Runtime dependency tree is empty.");
@@ -152,6 +152,6 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Dependency audit
-        # Trivially green while `dependencies` is absent (ADR-0018) — it exists to catch the
+        # Trivially green while `dependencies` is absent (ADR-0020) — it exists to catch the
         # day that stops being true, loudly and in the security job where it belongs.
         run: pnpm audit --prod

@@ -1,5 +1,5 @@
 # pnpm settings. This pnpm reads the install-script allowlist from here, not package.json.
 # Supply-chain hygiene (CLAUDE.md §5): only these packages may run install scripts. esbuild
-# is vitest's transform engine — a devDependency; nothing here ships in the SDK (ADR-0018).
+# is vitest's transform engine — a devDependency; nothing here ships in the SDK (ADR-0020).
 allowBuilds:
   esbuild: true

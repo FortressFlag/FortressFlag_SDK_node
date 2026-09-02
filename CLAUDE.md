@@ -12,7 +12,7 @@
 
 ## 1. This Repo
 
-The **Node server SDK** (backend ADR-0018, inheriting ADR-0016's decisions): zero-dependency
+The **Node server SDK** (backend ADR-0020, inheriting ADR-0016's decisions): zero-dependency
 TypeScript, ESM-only. It embeds in a customer's backend, downloads the full evaluable ruleset
 for one project + environment via an `ffs_` server key (`GET /v1/server/ruleset`), and
 evaluates flags **locally, in-process**. It implements
@@ -33,7 +33,7 @@ evaluates flags **locally, in-process**. It implements
   freshness, never validity**: a live response past `expiresAt` is refused; a cache-file
   load never is.
 - **The poller must never keep the customer's process alive**: the poll timer is unref'd
-  (ADR-0018). Removing the `.unref()` turns "embed FortressFlag" into "your CLI never
+  (ADR-0020). Removing the `.unref()` turns "embed FortressFlag" into "your CLI never
   exits" — it is load-bearing, not tidiness.
 
 ## 3. The server key IS a secret (server-contract-v1, ADR-0015)
@@ -54,7 +54,7 @@ never transmitted. The context key is an **opaque string** — never validated a
 client SDKs' `dev_`/`sim_` shape, never trimmed or normalised: the bucket hashes exactly the
 bytes given, or cohorts flip between components.
 
-## 5. Zero runtime dependencies (ADR-0018)
+## 5. Zero runtime dependencies (ADR-0020)
 
 `package.json` has **no `dependencies` block, and that absence is the gate** — CI asserts
 it. Everything the SDK needs is the platform: global `fetch`, `node:crypto`,
