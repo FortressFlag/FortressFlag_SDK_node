@@ -260,7 +260,7 @@ export class Client {
       void this.pollOnce();
     }, delayMs);
     // A flag SDK must never keep the customer's process alive after their code finishes
-    // (ADR-0018). Load-bearing, not tidiness: without unref, every script embedding this
+    // (ADR-0020). Load-bearing, not tidiness: without unref, every script embedding this
     // SDK hangs on exit until close() — and the ones that forget close() hang forever.
     this.timer.unref();
   }
