@@ -20,7 +20,8 @@ import { compareVersions, parseVersion } from "./semver.js";
  *     across rules. An EMPTY condition list holds vacuously (the terminal "everyone else"
  *     rule).
  *   - A condition whose tag key is absent from the context's tags does not hold; never an
- *     error. eq/neq are exact string comparison, case-sensitive, no trimming. The semver
+ *     error. eq/neq are exact string comparison and contains is substring match (backend
+ *     ADR-0023) — all case-sensitive, no trimming. The semver
  *     operators compare via parseVersion; an unparseable value on EITHER side makes the
  *     condition not hold. An operator this build does not recognise does not hold — fail
  *     closed into the default (Founding §8.3).
@@ -84,6 +85,8 @@ function conditionHolds(operator: string, ruleValue: string, tagValue: string): 
       return tagValue === ruleValue;
     case "neq":
       return tagValue !== ruleValue;
+    case "contains":
+      return tagValue.includes(ruleValue);
     case "semver_eq":
     case "semver_gt":
     case "semver_gte":
