@@ -4,7 +4,7 @@
  * so expiry tests assert instants, not races.
  */
 import { Buffer } from "node:buffer";
-import { resolveConfiguration, type Configuration } from "../configuration.js";
+import { resolveConfiguration, signatureDisabled, type Configuration } from "../configuration.js";
 import { Client } from "../client.js";
 import type { FetchOutcome, Transport } from "../transport.js";
 
@@ -68,7 +68,13 @@ export function scriptedFetcher(outcomes: FetchOutcome[]): Transport & { calls: 
 }
 
 export function testClient(fetcher: Transport, configuration: Partial<Configuration> = {}): Client {
-  const resolved = resolveConfiguration({ key: "ffs_dev_k", ...configuration });
+  // The fixtures serve unsigned envelopes, so the policy is the explicit local-dev opt-out
+  // (the production default is signatureRequired(FORTRESSFLAG_PRODUCTION)).
+  const resolved = resolveConfiguration({
+    key: "ffs_dev_k",
+    signature: signatureDisabled,
+    ...configuration,
+  });
   return new Client(resolved, fetcher, {
     nowMs: () => FIXTURE_NOW_MS,
     random: (low, high) => (low + high) / 2,

@@ -134,7 +134,7 @@ describe("verifyEnvelope", () => {
     expect(!result.ok && result.code).toBe("malformedPayload");
   });
 
-  test("the fail-closed stub: every signature shape rejects under a required policy", () => {
+  test("every malformed signature shape rejects under a required policy, in the contract's order", () => {
     const policy = signatureRequired(new Map([["k1", new Uint8Array(32)]]));
     const cases: [string | undefined, string][] = [
       [undefined, "missingSignature"],
@@ -143,7 +143,9 @@ describe("verifyEnvelope", () => {
       ["ed25519:AAAA", "malformedSignature"],
       ["p256:k1:AAAA", "unsupportedSignatureAlgorithm"],
       ["ed25519:unknown:AAAA", "unknownKeyId"],
-      ["ed25519:k1:AAAA", "badSignature"], // well-formed, known key — still rejected: no primitive exists
+      // Well-formed, known key id, 32-byte key: the primitive runs and refuses the 3-byte
+      // "signature" — the real verification path, not a stub.
+      ["ed25519:k1:AAAA", "badSignature"],
     ];
     for (const [sig, expected] of cases) {
       const result = verifyEnvelope(envelope(payloadJson(), sig), policy, EXPECT_LIVE);

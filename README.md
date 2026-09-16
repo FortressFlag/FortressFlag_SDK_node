@@ -19,5 +19,9 @@ It implements
 evaluation never throws and no promise from the API rejects. See `CLAUDE.md` for the rules
 this repo holds itself to.
 
+Every ruleset carries an Ed25519 signature that the SDK verifies against FortressFlag's
+production key before a single flag is served (backend ADR-0025); `signatureDisabled` is the
+explicit opt-out for a local backend without a signing key.
+
 **The `ffs_` server key is a genuine secret** — treat it like a database password. Store it
 in an environment variable or a secret manager, never in client code or logs.

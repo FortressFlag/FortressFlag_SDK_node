@@ -12,6 +12,7 @@ import { resolveConfiguration, type Configuration } from "./configuration.js";
 import { Client } from "./client.js";
 
 export {
+  FORTRESSFLAG_PRODUCTION,
   MalformedKeyError,
   signatureDisabled,
   signatureRequired,

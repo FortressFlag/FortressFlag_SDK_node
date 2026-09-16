@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { MalformedKeyError, keyPrefix, parseKey, resolveConfiguration } from "./configuration.js";
+import {
+  FORTRESSFLAG_PRODUCTION,
+  MalformedKeyError,
+  keyPrefix,
+  parseKey,
+  resolveConfiguration,
+} from "./configuration.js";
 
 describe("parseKey", () => {
   test("a secret containing underscores parses — the split-limit trap", () => {
@@ -63,5 +69,20 @@ describe("resolveConfiguration", () => {
     expect(resolveConfiguration({ key: "ffs_dev_k12345", baseUrl: "http://x/" }).baseUrl).toBe(
       "http://x",
     );
+  });
+});
+
+describe("signature default (ADR-0025)", () => {
+  test("the default policy is required, trusting exactly the production constant", () => {
+    const resolved = resolveConfiguration({ key: "ffs_dev_k12345" });
+    expect(resolved.signature.required).toBe(true);
+    expect([...resolved.signature.trustedKeys.keys()]).toEqual([...FORTRESSFLAG_PRODUCTION.keys()]);
+  });
+
+  test("the production constant holds prod-2026-09-k1 as exactly 32 raw bytes", () => {
+    expect([...FORTRESSFLAG_PRODUCTION.keys()]).toContain("prod-2026-09-k1");
+    for (const key of FORTRESSFLAG_PRODUCTION.values()) {
+      expect(key).toHaveLength(32);
+    }
   });
 });

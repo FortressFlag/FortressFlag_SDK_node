@@ -5,6 +5,8 @@
  * keyPrefix's six-character prefix.
  */
 
+import { Buffer } from "node:buffer";
+
 /** How the SDK treats the envelope's signature — see signatureDisabled/signatureRequired. */
 export interface SignaturePolicy {
   readonly required: boolean;
@@ -12,9 +14,26 @@ export interface SignaturePolicy {
 }
 
 /**
- * Accepts unsigned envelopes — the only workable policy until the backend's signing
- * milestone (M4) ships, and therefore the default. A named, greppable value rather than a
- * silent fallback, so "why is this not verifying?" has an answer in the customer's source.
+ * The raw 32-byte Ed25519 public keys FortressFlag signs production rulesets with, by key
+ * id (backend ADR-0025). Rotation adds key N+1 here before the backend switches to it, so
+ * rotation is a release of this constant, never an emergency. Each hex literal is the same
+ * bytes as the base64url form in its comment; check one against the other by eye.
+ */
+export const FORTRESSFLAG_PRODUCTION: ReadonlyMap<string, Uint8Array> = new Map<string, Uint8Array>(
+  [
+    [
+      "prod-2026-09-k1",
+      // ADR-0025, minted 2026-09-16: base64url EaEF8MHNu3onHxemTg3-OcrKrq7ODsZIVEp-IVV2ojg
+      Buffer.from("11a105f0c1cdbb7a271f17a64e0dfe39cacaaeaece0ec648544a7e215576a238", "hex"),
+    ],
+  ],
+);
+
+/**
+ * Accepts unsigned envelopes. The explicit opt-out for local development against a backend
+ * that has no signing key configured (it then omits `sig`) — a named, greppable value rather
+ * than a silent fallback, so "why is this not verifying?" has an answer in the customer's
+ * source. Never the default: production rulesets are signed (ADR-0025).
  */
 export const signatureDisabled: SignaturePolicy = Object.freeze({
   required: false,
@@ -22,11 +41,10 @@ export const signatureDisabled: SignaturePolicy = Object.freeze({
 });
 
 /**
- * Rejects every envelope whose signature cannot be verified against trustedKeys —
- * INCLUDING, until backend M4 ships a signing algorithm, every envelope there is: the
- * verification stub can reject a forgery but can never accept one. Rejection is never
- * fatal — the SDK keeps serving its last verified snapshot. The map and each key's bytes
- * are copied.
+ * Rejects every envelope whose signature cannot be verified against trustedKeys. The
+ * default is signatureRequired(FORTRESSFLAG_PRODUCTION); a staging deployment passes the
+ * staging key explicitly. Rejection is never fatal — the SDK keeps serving its last
+ * verified snapshot. The map and each key's bytes are copied.
  */
 export function signatureRequired(trustedKeys: ReadonlyMap<string, Uint8Array>): SignaturePolicy {
   const copied = new Map<string, Uint8Array>();
@@ -59,7 +77,11 @@ export interface Configuration {
    * only the ruleset envelope, never the key and never any evaluation context.
    */
   readonly cachePath?: string;
-  /** Signature policy. Defaults to signatureDisabled (the backend does not sign yet; M4). */
+  /**
+   * Signature policy. Defaults to signatureRequired(FORTRESSFLAG_PRODUCTION) — fail closed
+   * against FortressFlag's production key. Pass signatureDisabled only for a local backend
+   * that serves unsigned rulesets.
+   */
   readonly signature?: SignaturePolicy;
   /**
    * Per-request timeout in milliseconds. Short on purpose: a slow ruleset fetch must never
@@ -178,7 +200,7 @@ export function resolveConfiguration(configuration: Configuration): ResolvedConf
     baseUrl,
     pollIntervalMs,
     cachePath: configuration.cachePath ?? "",
-    signature: configuration.signature ?? signatureDisabled,
+    signature: configuration.signature ?? signatureRequired(FORTRESSFLAG_PRODUCTION),
     httpTimeoutMs,
   };
 }

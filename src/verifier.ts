@@ -5,6 +5,8 @@
  * much detail because "flags stopped updating" is otherwise one of the hardest things to
  * debug in a customer's service, and the answer should be one diagnostics() read.
  */
+import { Buffer } from "node:buffer";
+import { verify as verifyEd25519 } from "node:crypto";
 import { decodeBase64Url, parseEnvelope, parsePayload, parseWireTime } from "./envelope.js";
 import { SUPPORTED_SERVER_CONTRACT_VERSION, type RulesetPayload } from "./envelope.js";
 import type { SignaturePolicy } from "./configuration.js";
@@ -75,7 +77,7 @@ export function verifyEnvelope(
   }
 
   if (policy.required) {
-    const code = checkSignature(parsed.envelope.sig, policy);
+    const code = checkSignature(parsed.envelope.sig, parsed.payloadBytes, policy);
     if (code !== null) {
       return { ok: false, code };
     }
@@ -116,25 +118,30 @@ export function verifyEnvelope(
 }
 
 /**
- * The signature PLUMBING with the crypto primitive deliberately absent (ADR-0015/0016):
- * backend M4's algorithm ADR has not shipped. A missing signature under a required policy
- * is rejected (fail closed, the shipped client-SDK posture byte for byte); the
- * `algorithm:keyID:signature` splitting and trust-store lookup are real; and a signature
- * that survives those checks is still rejected as badSignature, because no primitive
- * exists to accept it. When M4 lands, its ADR decides the primitive and this is where it
- * goes — with a real trust store, this stub can reject valid payloads but can never accept
- * a forged one. Returns null only when the (non-required) checks pass — which today never
- * happens under a required policy.
+ * The DER SubjectPublicKeyInfo prefix for an Ed25519 key: node:crypto has no raw-key
+ * import, so the contract's raw 32 bytes are wrapped here (contract-v1 §Signing keys).
+ */
+const SPKI_ED25519_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
+const ED25519_PUBLIC_KEY_LENGTH = 32;
+
+/**
+ * Pure Ed25519 over the exact payload bytes (ADR-0025): `algorithm:keyID:signature`,
+ * split at the first two colons, trust-store lookup by key id, then node:crypto's verify
+ * with the raw key SPKI-wrapped. A trusted key that is not 32 bytes or that the platform
+ * refuses to import is reported as unknownKeyId — "cannot verify with this key" rather
+ * than a hard failure, so one bad entry cannot disable a rotation set (the iOS rule).
+ * Returns null when the signature verifies.
  */
 function checkSignature(
   sig: string | null | undefined,
+  payloadBytes: Uint8Array,
   policy: SignaturePolicy,
 ): RejectionCode | null {
   if (sig === undefined || sig === null || sig === "") {
     return "missingSignature";
   }
-  // Split at the first two colons so a key ID may contain a colon later without a breaking
-  // parse change.
+  // Split at the first two colons: the SIGNATURE may contain further colons, the key id
+  // never can (the backend refuses a key id with one — contract-v1 §Signing keys).
   const first = sig.indexOf(":");
   const second = first >= 0 ? sig.indexOf(":", first + 1) : -1;
   if (first < 0 || second < 0) {
@@ -146,13 +153,26 @@ function checkSignature(
   if (algorithm !== "ed25519") {
     return "unsupportedSignatureAlgorithm";
   }
-  if (signature === "" || decodeBase64Url(signature) === null) {
+  const signatureBytes = signature === "" ? null : decodeBase64Url(signature);
+  if (signatureBytes === null) {
     return "malformedSignature";
   }
-  if (!policy.trustedKeys.has(keyId)) {
+  const key = policy.trustedKeys.get(keyId);
+  if (key === undefined || key.length !== ED25519_PUBLIC_KEY_LENGTH) {
     return "unknownKeyId";
   }
-  // The primitive gap, made explicit: the payload bytes are deliberately unused beyond
-  // this point until M4 supplies the algorithm.
-  return "badSignature";
+  let valid: boolean;
+  try {
+    valid = verifyEd25519(
+      null,
+      payloadBytes,
+      { key: Buffer.concat([SPKI_ED25519_PREFIX, key]), format: "der", type: "spki" },
+      signatureBytes,
+    );
+  } catch {
+    // The platform refused the key itself (not a valid curve point): our trust store, not
+    // the payload, is at fault.
+    return "unknownKeyId";
+  }
+  return valid ? null : "badSignature";
 }
