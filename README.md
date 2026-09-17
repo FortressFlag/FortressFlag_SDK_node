@@ -1,5 +1,8 @@
 # FortressFlag Node SDK
 
+> **ADR-nnnn** refers to FortressFlag's internal architecture decision records. The public
+> contract every SDK implements is `FortressFlag_Standards`; decision records are not published.
+
 FortressFlag's **Node server SDK** (backend ADR-0020): zero-dependency TypeScript, ESM-only.
 Polls the server data plane's ruleset export with an `ffs_` server key and evaluates flags
 **locally, in-process** — no network hop per flag check.
