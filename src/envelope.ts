@@ -1,7 +1,7 @@
 /**
- * The wire envelope (server-contract-v1.md): the client envelope design, reused. `sig` is
- * omitted until backend M4 ships; when present it is a detached signature over the
- * payload's exact base64url bytes.
+ * The wire envelope (server-contract-v1.md): the client envelope design, reused. `sig` is a
+ * detached Ed25519 signature over the payload's exact decoded bytes (ADR-0025); only a dev
+ * backend with no signing key omits it.
  */
 import { Buffer } from "node:buffer";
 import type { FlagConfig } from "./ruleset.js";
