@@ -1,10 +1,10 @@
 {
   "name": "@fortressflag/sdk-node",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "FortressFlag Node server SDK — zero-dependency TypeScript, local in-process flag evaluation",
   "private": true,
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@11.17.0",
   "engines": {
     "node": ">=22"
@@ -22,6 +22,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "prepare": "tsc -p tsconfig.build.json",
     "lint": "prettier --check . && eslint .",
     "format": "prettier --write .",
     "test": "vitest run"
