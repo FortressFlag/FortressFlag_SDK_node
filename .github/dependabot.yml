@@ -22,3 +22,12 @@ updates:
     groups:
       dev:
         patterns: ["*"]
+        # Minor and patch only: each MAJOR arrives as its own PR, so one breaking major (TS 7,
+        # ESLint 10, Vitest 5 — all at once in September 2026) cannot hold every routine bump.
+        update-types: [minor, patch]
+    ignore:
+      # TypeScript 7 breaks this repo's tooling (typescript-eslint / @astrojs/check reject it) —
+      # the recurring red PR of every Dependabot round since August. Remove this entry when the
+      # tooling supports TS 7.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
